@@ -1,0 +1,129 @@
+@extends('layouts.app')
+@section('title')
+    Attach a PaymentMethod to a Customer | Stripe Demo
+@endsection
+
+@section('content')
+    <h1 class="text-center mt-10 text-indigo-900 text-2xl font-extrabold">
+        Attach a PaymentMethod to a Customer
+    </h1>
+    <div class="grid grid-cols-2 gap-4">
+        <div class="p-6 flex flex-col justify-center">
+
+            <div class="flex flex-col mt-6">
+                <label for="customer" class="text-lg font-bold mb-2">
+                    Customer
+                    <span id="customer-error" class="text-sm hidden py-1 px-2 rounded text-red-600 mx-1">
+                    </span>
+                </label>
+                <select id="customer" name="customer"
+                    class="w-100 mt-2 py-3 px-3 rounded-lg bg-white dark:bg-gray-800 border border-gray-400 dark:border-gray-700 text-gray-800 dark:text-gray-50 font-semibold focus:border-blue-500 focus:outline-none">
+                </select>
+            </div>
+
+            <div class="flex flex-col mt-6">
+                <label for="id" class="text-lg font-bold mb-2">
+                    PaymentMethod_ID
+                    <span class="text-xs font-semibold inline-block py-1 px-2 rounded text-white bg-red-600 mx-1">
+                        REQUIRED
+                    </span>
+                    <span id="id-error" class="text-sm hidden py-1 px-2 rounded text-red-600 mx-1">
+                    </span>
+                </label>
+                <input
+                    class="w-100 mt-2 py-3 px-3 rounded-lg bg-white dark:bg-gray-800 border border-gray-400 dark:border-gray-700 text-gray-800 dark:text-gray-50 font-semibold focus:border-blue-500 focus:outline-none"
+                    type="text" name="id" id="id" />
+            </div>
+
+
+
+
+
+            <a href="https://stripe.com/docs/api/customers/create?lang=php" class="text-indigo-900 mt-5">Many Parameters Not
+                Cover In This Example So Please Visite Website</a>
+
+            <a href="https://www.positronx.io/integrate-stripe-payment-gateway-in-laravel-application/"
+                class="text-indigo-900 mt-5">For Test Data Visit This Website </a>
+
+
+            <button id="target"
+                class="bg-blue-600 dark:bg-gray-100 text-white dark:text-gray-800 font-bold py-3 px-6 rounded-lg mt-4 hover:bg-blue-500 dark:hover:bg-gray-200 transition ease-in-out duration-300">
+                Submit
+            </button>
+        </div>
+        <div class="bg-gray-900 m-10 rounded-2xl" id="json" style="display: none;">
+            <pre class="text-white p-8 w-100 text-sm" id="responce">
+
+                                    </pre>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script>
+        $(document).ready(function() {
+            var limitdata = {
+                '_token': "{{ csrf_token() }}",
+                'limit': 10,
+            }
+            $.ajax({
+                url: "{{ url('/customer/all') }}",
+                type: "POST",
+                data: limitdata,
+                success: function(data) {
+                    $.each(data.data, function(key, value) {
+                        var option = "<option value='" + value.id + "'>" + value.id +
+                            "</option>";
+                        $("#customer").append(option);
+                    });
+                }
+            });
+        });
+        $("#target").on('click', function(event) {
+            var customer = $("#customer").val();
+            if ($("#id").val() != '') {
+                var formdata = {
+                    '_token': "{{ csrf_token() }}",
+                    'id': $("#id").val(),
+                    'customer': customer
+                }
+
+                $.ajax({
+                    url: "{{ route('paymentmethod.attach') }}",
+                    type: "POST",
+                    data: formdata,
+                    success: function(data) {
+                        $("#id-error").addClass("hidden");
+                        $("#customer-error").addClass("hidden");
+                        $("#json").css("display", "block");
+                        $("#responce").html(JSON.stringify(data, null, '\t'));
+                    },
+                    error: function(data) {
+
+                        $("#json").css("display", "none");
+                        $("#id-error").addClass("hidden");
+                        $("#customer-error").addClass("hidden");
+
+                        if (data.responseJSON.errors.hasOwnProperty('id')) {
+                            $("#id-error").removeClass("hidden");
+                            $("#id-error").html(data.responseJSON.errors.number[0]);
+                            $("#id-error").addClass("inline-block");
+                        }
+
+                        if (data.responseJSON.errors.hasOwnProperty('customer')) {
+                            $("#customer-error").removeClass("hidden");
+                            $("#customer-error").html(data.responseJSON.errors.customer[0]);
+                            $("#customer-error").addClass("inline-block");
+                        }
+                    },
+                });
+            } else {
+                $("#id-error").removeClass("hidden");
+                $("#id-error").html("The id field is required.");
+                $("#id-error").addClass("inline-block");
+            }
+
+        });
+    </script>
+
+@endsection
